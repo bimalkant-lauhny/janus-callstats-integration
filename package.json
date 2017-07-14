@@ -1,0 +1,25 @@
+{
+  "name": "janus-callstats-integration",
+  "version": "0.0.1",
+  "description": "Intermediate server that receives events from Janus-gateway and send stats to callstats.io using Callstats REST API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/code-master5/janus-callstats-integration.git"
+  },
+  "author": "code-master5",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/code-master5/janus-callstats-integration/issues"
+  },
+  "homepage": "https://github.com/code-master5/janus-callstats-integration#readme",
+  "dependencies": {
+    "crypto": "0.0.3",
+    "express": "^4.15.3",
+    "jsonwebtoken": "^7.4.1",
+    "request-promise": "^4.2.1"
+  }
+}
