@@ -20,6 +20,8 @@
     "crypto": "0.0.3",
     "express": "^4.15.3",
     "jsonwebtoken": "^7.4.1",
-    "request-promise": "^4.2.1"
+    "request-http2": "0.0.2",
+    "request-promise": "^4.2.1",
+    "spdy": "^3.4.7"
   }
 }

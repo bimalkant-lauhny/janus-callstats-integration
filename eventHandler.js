@@ -3,7 +3,6 @@ const callstats = require('./callstats');
 
 exports.handleEvent = function (event) {
   
-//   console.log(event);
   switch(event['type']) {
     case 1: sessionEventHandler(event);
       break;
@@ -35,12 +34,18 @@ var handleEventHandler = event => {
   var OID = event['event']['opaque_id'];
   if(OID){
     OID = JSON.parse(OID);
-    data.addConf(OID['confNum'], OID['confID']);
-    data.addUserToConf(OID['confID'], OID['userID'], OID);
+    for (let key in OID) {
+      if (typeof(OID[key]) === 'string') {
+        OID[key] = OID[key].replace(/ /g, '');
+      }
+    }
+    var confID = OID['confID'];
+    var confNum = OID['confNum'];
+    var userID = OID['userID'];
+    data.addConf(confNum, confID);
+    data.addUserToConf(confID, userID, OID);
+    logInfo();
   }
-  console.log("Current usersInfo: ", data.usersInfo);
-  console.log("Current usersMap: ", data.userMap);
-  console.log("Current confMap: ", data.confMap);
 };
 
 var jsepEventHandler = event => {
@@ -61,30 +66,64 @@ var pluginEventHandler = event => {
   if (dataObj) {
     if (dataObj['event'] === 'joined') {
       var userID = dataObj['display'];
-      var userNum = dataObj['id']
+      var userNum = dataObj['id'];
       var confID = data.confMap[dataObj['room']];
       var userData = data.getUserInConf(confID, userID);
+      var body = {
+        localID: userID, 
+        deviceID: userData['deviceID'], 
+        timestamp: Number(event['timestamp'])/1000000
+      };
       data.addUser(userNum, userID);
       if (confID) {
-        callstats.userJoined(confID, {localID: userID, 
-                                      deviceID: userData['deviceID'], 
-                                      timestamp: Number(dataObj['timestamp'])/1000000})
+        callstats.authenticate(userID)
+        .then(function(token){
+          console.log("\n::: Recieved Token Successfully! :::\n", token, "\n");
+          data.addKeyToUserWithinConf(confID, userID, 'token', token);
+          logInfo();
+          return callstats.userJoined(confID, body, token);
+        })
         .then(function(ucID) {
-          console.log('Recieved ucID: ', ucID);
+          console.log("\n::: Recieved ucID Successfully! ::: ", ucID, "\n");
           data.addKeyToUserWithinConf(confID, userID, 'ucID', ucID);
+          logInfo();
+          var user = data.getUserInConf(confID, userID);
+          callstats.userAlive(confID, body, user['token'], ucID);
         })
         .catch(function(err){
-          console.error("Did not recieve ucID: ", err.message);
+          console.error("this is bad", err);
         });
       } else {
         console.error('Unknown user data: ', event);
       }
+    } else if(dataObj['event'] === 'unpublished') {
+      console.log("::: deleting data :::");
+      var userNum = dataObj['id'];
+      var userID = data.userMap[userNum]; 
+      var confNum = dataObj['room']
+      var confID = data.confMap[confNum];
+      var userData = data.getUserInConf(confID, userID);
+      var body = {
+        localID: userID, 
+        deviceID: userData['deviceID'], 
+        timestamp: Number(event['timestamp'])/1000000
+      };
+      console.log("::: Detail :::", userID, confID);
+      var user = data.getUserInConf(confID, userID); 
+      if (userID && confID) {
+        callstats.userLeft(confID, body, user['token'], user['ucID'])
+        .then(function(msg) {
+          console.log("User Left success: ", msg);
+        })
+        .catch(function(err){
+          console.error("User Left error: ", err);
+        });
+        delete data.userMap[userNum];
+        data.removeUserFromConf(confID, userID);
+        logInfo();
+      }
     }
   }
-  console.log("Current usersMap: ", data.userMap);
-  console.log("Current confMap: ", data.confMap);
-  console.log("Current usersInfo: ", data.usersInfo);
-  
 };
 
 var transportEventHandler = event => {
@@ -94,3 +133,11 @@ var transportEventHandler = event => {
 var coreEventHandler = event => {
   console.log('core event: ', event);
 };
+
+
+function logInfo() {
+  console.log("Current userMap: ", data.userMap);
+  console.log("Current confMap: ", data.confMap);
+  console.log("Current usersInfo: ", data.usersInfo);
+  
+}

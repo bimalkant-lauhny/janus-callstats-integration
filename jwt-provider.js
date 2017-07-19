@@ -1,13 +1,12 @@
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const fs = require('fs');
 const config = require('./config');
 
 const jwtProvider = {
-  getJWT: function() {
+  getJWT: function(userID) {
     var privateKey = fs.readFileSync('./ssl/ecpriv.key');
     return jwt.sign({
-      userID: config.username,
+      userID: userID,
       appID: config.appID,
       keyID: config.keyID
     }, privateKey, {
