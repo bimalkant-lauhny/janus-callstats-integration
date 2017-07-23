@@ -4,6 +4,7 @@ const config = require('./config');
 const os = require('os');
 const rq = require('request-http2');
 const data = require('./data');
+const req = require('spdy');
 
 const callstats = {
   version: '1.0.0',
@@ -86,24 +87,19 @@ const callstats = {
       json: true
     };
     
-    var timer = null;
     function sendEvent() {
+      options.body['timestamp'] = Date.now()/1000;
+      rq(options, function(err, res, body) {
+        if (err)  {
+          console.error("UserAlive Error: ", err.message);
+        } else {
+          console.log("UserAlive response: \n", body);
+        }
+      });
+      
       var user = data.getUserInConf(confID, body.localID);
       if (user) {
-        options.body['timestamp'] = Date.now()/1000;
-        rq(options, function(err, res, body) {
-          if (err)  {
-            console.error("UserAlive Error: ", err.message);
-          } else {
-            console.log("UserAlive response: \n", body);
-          }
-        });
-        console.log("Inside sendEvent()");
-        timer = setTimeout(sendEvent, 10000);
-      } else {
-        if (timer) {
-          clearTimeout(timer);
-        }
+        setTimeout(sendEvent, 10000);
       }
     }
     
@@ -153,10 +149,24 @@ const callstats = {
       body: {
        "localID": body.localID, 
        "deviceID": body.deviceID,
-       "timestamp": Date.now()/1000
+       "timestamp": Date.now()/1000,
+       "remoteID": "Janus", 
+       "connectionID": ucID,
+       "eventType": "fabricSetup"
       },
       json: true
     };
+    
+    return new Promise(function(resolve, reject){
+      rq(options, function(err, res, body) {
+        if (err)  {
+          console.log("This is error::: ", err);
+          reject(err);
+        }
+        resolve(body)
+      })
+    });
+    
   }
 };
 

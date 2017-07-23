@@ -88,7 +88,12 @@ var pluginEventHandler = event => {
           data.addKeyToUserWithinConf(confID, userID, 'ucID', ucID);
           logInfo();
           var user = data.getUserInConf(confID, userID);
-          callstats.userAlive(confID, body, user['token'], ucID);
+          return callstats.fabricSetup(confID, body, user['token'], user['ucID']);
+        })
+        .then(function(msg){
+          console.log("::: FabricSetup response :::", msg);
+          var user = data.getUserInConf(confID, userID);
+          callstats.userAlive(confID, body, user['token'], user['ucID']);
         })
         .catch(function(err){
           console.error("this is bad", err);
