@@ -1,4 +1,3 @@
-const request = require('request-promise');
 const jwtProvider = require('./jwt-provider');
 const config = require('./config');
 const os = require('os');
@@ -22,13 +21,20 @@ const callstats = {
         'content-type': 'application/x-www-form-urlencoded'
       }
     }; 
-    console.log("\n::: Authenticate options :::");
-    console.log(options, "\n");
-    return request(options)
-            .then((token) => {
-              token = JSON.parse(token);
-              return token['access_token'];
-            });
+    
+    return new Promise(function(resolve, reject){
+      rq(options, function(err, res, body){
+        if (err) {
+          reject(err);
+        }
+        console.log(body);
+        if (body['error']) {
+          reject(new Error(body['errorReason']));
+        }
+        body = JSON.parse(body);
+        resolve(body['access_token']);
+      })
+    });
   },
   
   userJoined: function(confID, body, token) {
@@ -53,9 +59,6 @@ const callstats = {
       },
       json: true
     }; 
-    console.log("\n::: UserJoined Options ::: ");
-    console.log(options, "\n");
-    
     return new Promise(function(resolve, reject){
       rq(options, function(err, res, body) {
         if (err)  {
@@ -122,7 +125,6 @@ const callstats = {
       },
       json: true
     };
-      
     return new Promise(function(resolve, reject){
       rq(options, function(err, res, body) {
         if (err)  {
@@ -163,10 +165,38 @@ const callstats = {
           console.log("This is error::: ", err);
           reject(err);
         }
-        resolve(body)
+        resolve(body);
       })
     });
-    
+  },
+  submitStats: function(track, candidatePair) {
+    var options = {
+      method: 'POST',
+      uri:  'https://stats.callstats.io/v1/apps/' + 
+            config.appID + '/conferences/' +
+            confID + '/' + ucID + '/stats',
+      http2: true,
+      headers: {
+        'Authorization': 'Bearer ' + token,
+      },
+      body: {
+       "localID": body.localID, 
+       "deviceID": body.deviceID,
+       "remoteID": "Janus", 
+       "connectionID": ucID,
+       "timestamp": Date.now()/1000,
+       "stats": [{
+         "tracks": [{
+            track
+         }],
+         "candidatePairs": [{
+            candidatePair
+         }],
+         "timestamp": 0
+       }]
+      },
+      json: true
+    };
   }
 };
 

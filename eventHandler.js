@@ -1,27 +1,33 @@
 const data = require('./data');
 const callstats = require('./callstats');
+const sdpTransform = require('sdp-transform');
 
-exports.handleEvent = function (event) {
-  
-  switch(event['type']) {
-    case 1: sessionEventHandler(event);
+exports.handleEvent = function handleEvent (event) {
+  if (Array.isArray(event)) {
+    for ( let i of event) {
+      handleEvent(i); 
+    }
+  } else {
+    switch(event['type']) {
+      case 1: sessionEventHandler(event);
       break;
-    case 2: handleEventHandler(event);
+      case 2: handleEventHandler(event);
       break;
-    case 8: jsepEventHandler(event);
+      case 8: jsepEventHandler(event);
       break;
-    case 16: webrtcEventHandler(event);
+      case 16: webrtcEventHandler(event);
       break;
-    case 32: mediaEventHandler(event);
+      case 32: mediaEventHandler(event);
       break;
-    case 64: pluginEventHandler(event);
+      case 64: pluginEventHandler(event);
       break;
-    case 128: transportEventHandler(event);
+      case 128: transportEventHandler(event);
       break;
-    case 256: coreEventHandler(event);
+      case 256: coreEventHandler(event);
       break;
-    default: 
-      console.error("Unknown type of event! ", event);
+      default: 
+        console.error("Unknown type of event! ", event);
+    }
   }
 };
 
@@ -31,118 +37,193 @@ var sessionEventHandler = event => {
 
 var handleEventHandler = event => {
   console.log("Handle Event: type 2", event);
-  var OID = event['event']['opaque_id'];
-  if(OID){
-    OID = JSON.parse(OID);
-    for (let key in OID) {
-      if (typeof(OID[key]) === 'string') {
-        OID[key] = OID[key].replace(/ /g, '');
+  
+  var eventName = event['event']['name'];
+  var handleID = toString(event['handle_id']);
+  var sessionID = toString(event['session_id']);
+  
+  if (eventName === 'attached') {
+    data.addHandleToSession(sessionID, handleID, {});
+    var OID = event['event']['opaque_id'];
+    if(OID){
+      OID = JSON.parse(OID);
+      for (let key in OID) {
+        if (typeof(OID[key]) === 'string') {
+          OID[key] = OID[key].replace(/ /g, '');
+        }
+      }
+      var confID = OID['confID'];
+      var confNum = OID['confNum'];
+      var userID = OID['userID'];
+      data.addConf(confNum, confID);
+      data.addUserToConf(confID, userID, OID);
+    }
+  } else if (eventName === 'detached') {
+    data.removeHandleFromSession(sessionID, handleID);
+  }
+  logInfo();
+};
+
+// event handler functions
+
+function jsepEventHandler(event) {
+  console.log("JSEP Event: type 8", event);
+  var sessionID = event['session_id'];
+  var handleID = event['handle_id'];
+  var owner = event['event']['owner'];
+  if (owner === 'remote') {
+    var sdp = event['event']['jsep']['sdp'];
+    sdp = sdpTransform.parse(sdp);
+    var mediaArray = sdp['media'];
+    for (let media of mediaArray) {
+      let mediaType = media['type'];
+      console.log("::: Media :::", media);
+      let ssrc = media['ssrcs'][0]['id'];
+      if (mediaType === 'audio'){
+        data.addKeyToHandleWithinSession(sessionID, handleID, "audio-ssrc", ssrc);
+      } else if (mediaType === 'video') {
+        data.addKeyToHandleWithinSession(sessionID, handleID, "video-ssrc", ssrc);
       }
     }
-    var confID = OID['confID'];
-    var confNum = OID['confNum'];
-    var userID = OID['userID'];
-    data.addConf(confNum, confID);
-    data.addUserToConf(confID, userID, OID);
-    logInfo();
   }
-};
+  logInfo();
+}
 
-var jsepEventHandler = event => {
-  
-};
+function webrtcEventHandler(event){
+  console.log("WebRTC Event: type 32", event);
+  var sessionID = event['session_id'];
+  var handleID = event['handle_id'];
+  var eventData = event['event'];
+  if(eventData['selected-pair']) {
+    let pair = eventData['selected-pair'];
+    pair = pair.split(/ <-> /g);
+    let local = pair[0].split(/\s/g);
+    let remote = pair[1].split(/\s/g);
+    local[1] = local[1].replace(/\[|\]/g, '').split(',');
+    remote[1] = remote[1].replace(/\[|\]/g, '').split(',');
+    let localCandidate = {
+      'address':local[0],
+      'typ': local[1][0],
+      'protocol': local[1][1]
+    };
+    let remoteCandidate = {
+      'address': remote[0],
+      'typ': remote[1][0],
+      'protocol': remote[1][1]
+    };
+    data.addKeyToHandleWithinSession(sessionID, handleID, "local-candidate", localCandidate);
+    data.addKeyToHandleWithinSession(sessionID, handleID, "remote-candidate", remoteCandidate);
+  }
+  logInfo();
+}
 
-var webrtcEventHandler = event => {
-  
-};
+function mediaEventHandler(event) {
+  console.log('Media Event: type 32 ', event);
+  var sessionID = event['session_id'];
+  var handleID = event['handle_id'];
+  var eventData = event['event'];
+  if (!event['receiving']) {
+    let media = eventData['media'];
+    if (media === 'audio') {
+      
+    } else if (media === 'video'){
+      
+    }
+  }
+}
 
-var mediaEventHandler = event => {
-  
-};
-
-var pluginEventHandler = event => {
+function pluginEventHandler(event){
   console.log("Plugin Event: type 64", event);
   var dataObj = event['event']['data'];
-  if (dataObj) {
-    if (dataObj['event'] === 'joined') {
-      var userID = dataObj['display'];
-      var userNum = dataObj['id'];
-      var confID = data.confMap[dataObj['room']];
-      var userData = data.getUserInConf(confID, userID);
-      var body = {
-        localID: userID, 
-        deviceID: userData['deviceID'], 
-        timestamp: Number(event['timestamp'])/1000000
-      };
-      data.addUser(userNum, userID);
-      if (confID) {
-        callstats.authenticate(userID)
-        .then(function(token){
-          console.log("\n::: Recieved Token Successfully! :::\n", token, "\n");
-          data.addKeyToUserWithinConf(confID, userID, 'token', token);
-          logInfo();
-          return callstats.userJoined(confID, body, token);
-        })
-        .then(function(ucID) {
-          console.log("\n::: Recieved ucID Successfully! ::: ", ucID, "\n");
-          data.addKeyToUserWithinConf(confID, userID, 'ucID', ucID);
-          logInfo();
-          var user = data.getUserInConf(confID, userID);
-          return callstats.fabricSetup(confID, body, user['token'], user['ucID']);
-        })
-        .then(function(msg){
-          console.log("::: FabricSetup response :::", msg);
-          var user = data.getUserInConf(confID, userID);
-          callstats.userAlive(confID, body, user['token'], user['ucID']);
-        })
-        .catch(function(err){
-          console.error("this is bad", err);
-        });
-      } else {
-        console.error('Unknown user data: ', event);
-      }
-    } else if(dataObj['event'] === 'unpublished') {
-      console.log("::: deleting data :::");
-      var userNum = dataObj['id'];
-      var userID = data.userMap[userNum]; 
-      var confNum = dataObj['room']
-      var confID = data.confMap[confNum];
-      var userData = data.getUserInConf(confID, userID);
-      var body = {
-        localID: userID, 
-        deviceID: userData['deviceID'], 
-        timestamp: Number(event['timestamp'])/1000000
-      };
-      console.log("::: Detail :::", userID, confID);
-      var user = data.getUserInConf(confID, userID); 
-      if (userID && confID) {
-        callstats.userLeft(confID, body, user['token'], user['ucID'])
-        .then(function(msg) {
-          console.log("User Left success: ", msg);
-        })
-        .catch(function(err){
-          console.error("User Left error: ", err);
-        });
-        delete data.userMap[userNum];
-        data.removeUserFromConf(confID, userID);
+  var eventName = dataObj['event']; 
+  
+  if (eventName === 'joined') {
+    var userID = dataObj['display'];
+    var userNum = dataObj['id'];
+    data.addUser(userNum, userID);
+    var confID = data.confMap[dataObj['room']];
+    var userData = data.getUserInConf(confID, userID);
+    var body = {
+      localID: userID, 
+      deviceID: userData['deviceID'], 
+      timestamp: Number(event['timestamp'])/1000000
+    };
+    if (confID) {
+      callstats.authenticate(userID)
+      .then(function(token){
+        console.log("\n::: Recieved Token Successfully! :::\n", token, "\n");
+        data.addKeyToUserWithinConf(confID, userID, 'token', token);
         logInfo();
-      }
+        return callstats.userJoined(confID, body, token);
+      })
+      .then(function(ucID) {
+        console.log("\n::: Recieved ucID Successfully! ::: ", ucID, "\n");
+        data.addKeyToUserWithinConf(confID, userID, 'ucID', ucID);
+        logInfo();
+        var user = data.getUserInConf(confID, userID);
+        return callstats.fabricSetup(confID, body, user['token'], user['ucID']);
+      })
+      .then(function(msg){
+        console.log("::: FabricSetup response :::", msg);
+        var user = data.getUserInConf(confID, userID);
+        callstats.userAlive(confID, body, user['token'], user['ucID']);
+      })
+      .catch(function(err){
+        console.error("this is bad", err);
+      });
+    } else {
+      console.error('Unknown user data: ', event);
+    }
+  } else if(eventName === 'unpublished') {
+    console.log("::: deleting data :::");
+    var userNum = dataObj['id'];
+    var userID = data.userMap[userNum]; 
+    var confNum = dataObj['room']
+    var confID = data.confMap[confNum];
+    var userData = data.getUserInConf(confID, userID);
+    var body = {
+      localID: userID, 
+      deviceID: userData['deviceID'], 
+      timestamp: Number(event['timestamp'])/1000000
+    };
+    console.log("::: Detail :::", userID, confID);
+    var user = data.getUserInConf(confID, userID); 
+    if (userID && confID) {
+      callstats.userLeft(confID, body, user['token'], user['ucID'])
+      .then(function(msg) {
+        console.log("User Left success: ", msg);
+      })
+      .catch(function(err){
+        console.error("User Left error: ", err);
+      });
+      delete data.userMap[userNum];
+      data.removeUserFromConf(confID, userID);
+      logInfo();
     }
   }
-};
+}
 
-var transportEventHandler = event => {
+function transportEventHandler(event){
   
-};
+}
 
-var coreEventHandler = event => {
-  console.log('core event: ', event);
-};
+function coreEventHandler(event){
+  var eventName = event['event']['status'];
+  if (eventName === 'started') {
+    console.log("::: Started Janus Instance! :::");
+  } else if (eventName === 'shutdown'){
+    console.log("::: Closed Janus Instance! :::");
+  }
+}
 
-
+// extra functions
 function logInfo() {
   console.log("Current userMap: ", data.userMap);
   console.log("Current confMap: ", data.confMap);
   console.log("Current usersInfo: ", data.usersInfo);
-  
+  console.log("Current sessionInfo", data.sessionInfo);
+}
+
+function toString(item) {
+  return '' + item;
 }
