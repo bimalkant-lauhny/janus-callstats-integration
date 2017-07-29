@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/code-master5/janus-callstats-integration#readme",
   "dependencies": {
+    "http2": "^3.3.6",
     "jsonwebtoken": "^7.4.1",
     "request-http2": "0.0.2",
     "sdp-transform": "^2.3.0",

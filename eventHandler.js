@@ -36,7 +36,7 @@ var sessionEventHandler = event => {
 };
 
 var handleEventHandler = event => {
-  console.log("Handle Event: type 2", event);
+  console.log("Handle Event: type 2");
   
   var eventName = event['event']['name'];
   var handleID = toString(event['handle_id']);
@@ -67,7 +67,7 @@ var handleEventHandler = event => {
 // event handler functions
 
 function jsepEventHandler(event) {
-  console.log("JSEP Event: type 8", event);
+  console.log("JSEP Event: type 8");
   var handleID = toString(event['handle_id']);
   var sessionID = toString(event['session_id']);
   var owner = event['event']['owner'];
@@ -77,7 +77,6 @@ function jsepEventHandler(event) {
     var mediaArray = sdp['media'];
     for (let media of mediaArray) {
       let mediaType = media['type'];
-      console.log("::: Media :::", media);
       let ssrc = media['ssrcs'][0]['id'];
       if (mediaType === 'audio'){
         data.addKeyToHandleWithinSession(sessionID, handleID, "audio-ssrc", ssrc);
@@ -90,7 +89,7 @@ function jsepEventHandler(event) {
 }
 
 function webrtcEventHandler(event){
-  console.log("WebRTC Event: type 32", event);
+  console.log("WebRTC Event: type 16");
   var handleID = toString(event['handle_id']);
   var sessionID = toString(event['session_id']);
   var eventData = event['event'];
@@ -118,7 +117,7 @@ function webrtcEventHandler(event){
 }
 
 function mediaEventHandler(event) {
-  console.log('Media Event: type 32 ');
+  console.log('Media Event: type 32');
   var handleID = toString(event['handle_id']);
   var sessionID = toString(event['session_id']);
   var eventData = event['event'];
@@ -163,7 +162,7 @@ function mediaEventHandler(event) {
 }
 
 function pluginEventHandler(event){
-  console.log("Plugin Event: type 64", event);
+  console.log("Plugin Event: type 64");
   var dataObj = event['event']['data'];
   var eventName = dataObj['event']; 
   
@@ -248,10 +247,10 @@ function coreEventHandler(event){
 
 // extra functions
 function logInfo() {
-  console.log("Current userMap: ", data.userMap);
-  console.log("Current confMap: ", data.confMap);
-  console.log("Current usersInfo: ", data.usersInfo);
-  console.log("Current sessionInfo", data.sessionInfo);
+//   console.log("Current userMap: ", data.userMap);
+//   console.log("Current confMap: ", data.confMap);
+//   console.log("Current usersInfo: ", data.usersInfo);
+//   console.log("Current sessionInfo", data.sessionInfo);
 }
 
 function toString(item) {

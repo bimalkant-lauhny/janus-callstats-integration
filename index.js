@@ -1,6 +1,5 @@
 const fs = require('fs');
 const spdy = require('spdy');
-
 const config = require('./config');
 const eventHandler = require('./eventHandler');
 
