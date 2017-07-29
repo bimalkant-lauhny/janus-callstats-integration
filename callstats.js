@@ -3,7 +3,7 @@ const config = require('./config');
 const os = require('os');
 const rq = require('request-http2');
 const data = require('./data');
-const req = require('spdy');
+const http2 = require('spdy');
 
 const callstats = {
   version: '1.0.0',
@@ -169,21 +169,22 @@ const callstats = {
       })
     });
   },
-  submitStats: function(track, candidatePair) {
+  submitStats: function(body, track, candidatePair) {
+    console.log("::: Check ssrc :::", track);
     var options = {
       method: 'POST',
       uri:  'https://stats.callstats.io/v1/apps/' + 
             config.appID + '/conferences/' +
-            confID + '/' + ucID + '/stats',
+            body.confID + '/' + body.ucID + '/stats',
       http2: true,
       headers: {
-        'Authorization': 'Bearer ' + token,
+        'Authorization': 'Bearer ' + body.token,
       },
       body: {
-       "localID": body.localID, 
+       "localID": body.userID, 
        "deviceID": body.deviceID,
        "remoteID": "Janus", 
-       "connectionID": ucID,
+       "connectionID": body.ucID,
        "timestamp": Date.now()/1000,
        "stats": [{
          "tracks": [{
@@ -192,11 +193,21 @@ const callstats = {
          "candidatePairs": [{
             candidatePair
          }],
-         "timestamp": 0
+         "timestamp": Date.now()/1000
        }]
       },
       json: true
     };
+    
+    return new Promise(function(resolve, reject){
+      rq(options, function(err, res, body) {
+        if (err)  {
+          console.log("This is error::: ", err);
+          reject(err);
+        }
+        resolve(body);
+      })
+    });
   }
 };
 

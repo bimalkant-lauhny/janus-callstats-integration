@@ -41,9 +41,8 @@ var handleEventHandler = event => {
   var eventName = event['event']['name'];
   var handleID = toString(event['handle_id']);
   var sessionID = toString(event['session_id']);
-  
+  data.addKeyToSession(sessionID, handleID, {});
   if (eventName === 'attached') {
-    data.addHandleToSession(sessionID, handleID, {});
     var OID = event['event']['opaque_id'];
     if(OID){
       OID = JSON.parse(OID);
@@ -57,6 +56,7 @@ var handleEventHandler = event => {
       var userID = OID['userID'];
       data.addConf(confNum, confID);
       data.addUserToConf(confID, userID, OID);
+      data.addKeyToSession(sessionID, "opaqueID", OID);
     }
   } else if (eventName === 'detached') {
     data.removeHandleFromSession(sessionID, handleID);
@@ -68,8 +68,8 @@ var handleEventHandler = event => {
 
 function jsepEventHandler(event) {
   console.log("JSEP Event: type 8", event);
-  var sessionID = event['session_id'];
-  var handleID = event['handle_id'];
+  var handleID = toString(event['handle_id']);
+  var sessionID = toString(event['session_id']);
   var owner = event['event']['owner'];
   if (owner === 'remote') {
     var sdp = event['event']['jsep']['sdp'];
@@ -91,8 +91,8 @@ function jsepEventHandler(event) {
 
 function webrtcEventHandler(event){
   console.log("WebRTC Event: type 32", event);
-  var sessionID = event['session_id'];
-  var handleID = event['handle_id'];
+  var handleID = toString(event['handle_id']);
+  var sessionID = toString(event['session_id']);
   var eventData = event['event'];
   if(eventData['selected-pair']) {
     let pair = eventData['selected-pair'];
@@ -104,12 +104,12 @@ function webrtcEventHandler(event){
     let localCandidate = {
       'address':local[0],
       'typ': local[1][0],
-      'protocol': local[1][1]
+      'transport': local[1][1]
     };
     let remoteCandidate = {
       'address': remote[0],
       'typ': remote[1][0],
-      'protocol': remote[1][1]
+      'transport': remote[1][1]
     };
     data.addKeyToHandleWithinSession(sessionID, handleID, "local-candidate", localCandidate);
     data.addKeyToHandleWithinSession(sessionID, handleID, "remote-candidate", remoteCandidate);
@@ -118,17 +118,47 @@ function webrtcEventHandler(event){
 }
 
 function mediaEventHandler(event) {
-  console.log('Media Event: type 32 ', event);
-  var sessionID = event['session_id'];
-  var handleID = event['handle_id'];
+  console.log('Media Event: type 32 ');
+  var handleID = toString(event['handle_id']);
+  var sessionID = toString(event['session_id']);
   var eventData = event['event'];
-  if (!event['receiving']) {
+  if (eventData['base']) {
     let media = eventData['media'];
+    let handle = data.getKeyInSession(sessionID, handleID);
+    let localCandidate = handle['local-candidate'];
+    let remoteCandidate = handle['remote-candidate'];
+    let track = {
+      "reportType": "local",
+      "bytesSent" : eventData['bytes-sent'],
+      "type": "ssrc",
+      "packetsSent": eventData['packets-sent'],
+      "timestamp": Date.now()/1000
+    };
+    let candidatePair = {
+      "googRemoteAddress": remoteCandidate['address'],
+      "googRemoteCandidateType":remoteCandidate['typ'],
+      "googTransportType": remoteCandidate['transport'],
+      "type": "googCandidatePair",
+      "googLocalAddress": localCandidate['address'],
+      "googLocalCandidateType": "local",
+      "timestamp": Date.now()/1000
+    };
     if (media === 'audio') {
-      
+      track['mediaType'] = 'audio';
+      track['ssrc'] = handle['audio-ssrc'];
+      track["googCodecName"] = "opus";
     } else if (media === 'video'){
-      
+      track['mediaType'] = 'video';
+      track['ssrc'] = handle['video-ssrc'];
+      track["googCodecName"] = "VP8";
     }
+    callstats.submitStats(data.getKeyInSession(sessionID, "opaqueID"), track, candidatePair)
+    .then(function(res) {
+      console.log("submitStats Done!", res);
+    })
+    .catch(function(err) {
+      console.log("submitStats Failed! ", err);
+    });
   }
 }
 

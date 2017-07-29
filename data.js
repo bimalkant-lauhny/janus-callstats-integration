@@ -25,18 +25,18 @@ module.exports = {
   removeUserFromConf: function(confID, userID) {
     delete this.usersInfo[confID][userID];
   },
-  addHandleToSession: function(sessionID, handleID, body) {
+  addKeyToSession: function(sessionID, key, val) {
     if(this.sessionInfo[sessionID] === undefined) {
       this.sessionInfo[sessionID] = {};
     }
     var temp = this.sessionInfo[sessionID];
-    temp[handleID] = body;
+    temp[key] = val;
   },
   addKeyToHandleWithinSession: function(sessionID, handleID, key, val) {
     this.sessionInfo[sessionID][handleID][key] = val;
   },
-  getHandleInSession: function(sessionID, handleID) {
-    return this.sessionInfo[sessionID][handleID];
+  getKeyInSession: function(sessionID, key) {
+    return this.sessionInfo[sessionID][key];
   },
   removeHandleFromSession: function(sessionID, handleID) {
     delete this.sessionInfo[sessionID][handleID];
