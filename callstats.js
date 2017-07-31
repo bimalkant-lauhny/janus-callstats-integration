@@ -169,16 +169,13 @@ const callstats = {
       "connectionID": body.ucID,
       "timestamp": Date.now()/1000,
       "stats": [{
-        "tracks": [{
-          track
-        }],
-        "candidatePairs": [{
-          candidatePair
-        }],
+        "tracks": [track],
+        "candidatePairs": [candidatePair],
         "timestamp": Date.now()/1000
       }]
     });
-      
+    
+    console.log("::: These are stats :::", payload);
     var options = {
       host: "stats.callstats.io",
       path: "/v1/apps/" + config.appID + "/conferences/" 

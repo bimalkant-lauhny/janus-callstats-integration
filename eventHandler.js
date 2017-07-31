@@ -144,11 +144,11 @@ function mediaEventHandler(event) {
     };
     if (media === 'audio') {
       track['mediaType'] = 'audio';
-      track['ssrc'] = handle['audio-ssrc'];
+      track['ssrc'] = Number(handle['audio-ssrc']);
       track["googCodecName"] = "opus";
     } else if (media === 'video'){
       track['mediaType'] = 'video';
-      track['ssrc'] = handle['video-ssrc'];
+      track['ssrc'] = Number(handle['video-ssrc']);
       track["googCodecName"] = "VP8";
     }
     callstats.submitStats(data.getKeyInSession(sessionID, "opaqueID"), track, candidatePair)
@@ -247,10 +247,10 @@ function coreEventHandler(event){
 
 // extra functions
 function logInfo() {
-//   console.log("Current userMap: ", data.userMap);
-//   console.log("Current confMap: ", data.confMap);
-//   console.log("Current usersInfo: ", data.usersInfo);
-//   console.log("Current sessionInfo", data.sessionInfo);
+   console.log("Current userMap: ", data.userMap);
+   console.log("Current confMap: ", data.confMap);
+   console.log("Current usersInfo: ", data.usersInfo);
+   console.log("Current sessionInfo", data.sessionInfo);
 }
 
 function toString(item) {

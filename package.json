@@ -4,7 +4,8 @@
   "description": "Intermediate server that receives events from Janus-gateway and send stats to callstats.io using Callstats REST API",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start" : "node index.js"
   },
   "repository": {
     "type": "git",

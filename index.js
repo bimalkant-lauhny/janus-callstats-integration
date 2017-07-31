@@ -1,11 +1,12 @@
 const fs = require('fs');
 const spdy = require('spdy');
+const https = require('https');
 const config = require('./config');
 const eventHandler = require('./eventHandler');
 
 const serverOptions = {
-  key: fs.readFileSync('./ssl/server.key'),
-  cert: fs.readFileSync('./ssl/server.crt'),
+  key: fs.readFileSync(config.keyPath),
+  cert: fs.readFileSync(config.crtPath),
   requestCert: false,
   rejectUnauthorized: false,
   spdy: {
@@ -16,7 +17,7 @@ const serverOptions = {
 
 var server = spdy.createServer(serverOptions, function(req, res) {
   var body = "";
-  req.on("data", (chunk) => {
+  req.on("data", function (chunk) {
     body += chunk;
   });
   req.on("end", function () {
