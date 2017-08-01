@@ -170,7 +170,6 @@ const callstats = {
     });
   },
   submitStats: function(body, track, candidatePair) {
-    console.log("::: Check ssrc :::", track);
     var options = {
       method: 'POST',
       uri:  'https://stats.callstats.io/v1/apps/' + 
@@ -187,12 +186,8 @@ const callstats = {
        "connectionID": body.ucID,
        "timestamp": Date.now()/1000,
        "stats": [{
-         "tracks": [{
-            track
-         }],
-         "candidatePairs": [{
-            candidatePair
-         }],
+         "tracks": [track],
+         "candidatePairs": [candidatePair],
          "timestamp": Date.now()/1000
        }]
       },
