@@ -144,11 +144,11 @@ function mediaEventHandler(event) {
     };
     if (media === 'audio') {
       track['mediaType'] = 'audio';
-      track['ssrc'] = Number(handle['audio-ssrc']);
+      track['ssrc'] = toString(handle['audio-ssrc']);
       track["googCodecName"] = "opus";
     } else if (media === 'video'){
       track['mediaType'] = 'video';
-      track['ssrc'] = Number(handle['video-ssrc']);
+      track['ssrc'] = toString(handle['video-ssrc']);
       track["googCodecName"] = "VP8";
     }
     callstats.submitStats(data.getKeyInSession(sessionID, "opaqueID"), track, candidatePair)

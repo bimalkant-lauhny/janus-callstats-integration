@@ -7,7 +7,8 @@ const config = {
   janusVersion: "0.2.3",
   jangoutsVersion: "0.4.6",
   keyPath: "./ssl/server.key",
-  crtPath: "./ssl/server.crt"
+  crtPath: "./ssl/server.crt",
+  privateKeyPath: "./ssl/ecpriv.key"
 };
 
 module.exports = config;

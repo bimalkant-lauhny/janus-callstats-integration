@@ -4,7 +4,7 @@ const config = require('./config');
 
 const jwtProvider = {
   getJWT: function(userID) {
-    var privateKey = fs.readFileSync('./ssl/ecpriv.key');
+    var privateKey = fs.readFileSync(config.privateKeyPath);
     return jwt.sign({
       userID: userID,
       appID: config.appID,
