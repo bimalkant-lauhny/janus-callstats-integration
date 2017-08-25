@@ -5,7 +5,7 @@ const sdpTransform = require('sdp-transform');
 exports.handleEvent = function handleEvent (event) {
   if (Array.isArray(event)) {
     for ( let i of event) {
-      handleEvent(i); 
+      handleEvent(i);
     }
   } else {
     switch(event['type']) {
@@ -25,19 +25,19 @@ exports.handleEvent = function handleEvent (event) {
       break;
       case 256: coreEventHandler(event);
       break;
-      default: 
+      default:
         console.error("Unknown type of event! ", event);
     }
   }
 };
 
 var sessionEventHandler = event => {
-  
+
 };
 
 var handleEventHandler = event => {
   console.log("Handle Event: type 2");
-  
+
   var eventName = event['event']['name'];
   var handleID = toString(event['handle_id']);
   var sessionID = toString(event['session_id']);
@@ -51,9 +51,9 @@ var handleEventHandler = event => {
           OID[key] = OID[key].replace(/ /g, '');
         }
       }
-      var confID = OID['confID'];
-      var confNum = OID['confNum'];
-      var userID = OID['userID'];
+      var confID = OID['roomDesc'];
+      var confNum = OID['roomId'];
+      var userID = OID['user'];
       data.addConf(confNum, confID);
       data.addUserToConf(confID, userID, OID);
       data.addKeyToSession(sessionID, "opaqueID", OID);
@@ -77,7 +77,12 @@ function jsepEventHandler(event) {
     var mediaArray = sdp['media'];
     for (let media of mediaArray) {
       let mediaType = media['type'];
-      let ssrc = media['ssrcs'][0]['id'];
+      console.log("::: media :::\n", media);
+      let ssrcs = media['ssrcs'];
+      if (ssrcs === undefined) {
+        continue;
+      }
+      let ssrc = ssrcs[0]['id'];
       if (mediaType === 'audio'){
         data.addKeyToHandleWithinSession(sessionID, handleID, "audio-ssrc", ssrc);
       } else if (mediaType === 'video') {
@@ -164,8 +169,8 @@ function mediaEventHandler(event) {
 function pluginEventHandler(event){
   console.log("Plugin Event: type 64");
   var dataObj = event['event']['data'];
-  var eventName = dataObj['event']; 
-  
+  var eventName = dataObj['event'];
+
   if (eventName === 'joined') {
     var userID = dataObj['display'];
     var userNum = dataObj['id'];
@@ -173,8 +178,8 @@ function pluginEventHandler(event){
     var confID = data.confMap[dataObj['room']];
     var userData = data.getUserInConf(confID, userID);
     var body = {
-      localID: userID, 
-      deviceID: userData['deviceID'], 
+      localID: userID,
+      deviceID: userData['deviceID'],
       timestamp: Number(event['timestamp'])/1000000
     };
     if (confID) {
@@ -206,17 +211,17 @@ function pluginEventHandler(event){
   } else if(eventName === 'unpublished') {
     console.log("::: deleting data :::");
     var userNum = dataObj['id'];
-    var userID = data.userMap[userNum]; 
-    var confNum = dataObj['room']
+    var userID = data.userMap[userNum];
+    var confNum = dataObj['room'];
     var confID = data.confMap[confNum];
     var userData = data.getUserInConf(confID, userID);
     var body = {
-      localID: userID, 
-      deviceID: userData['deviceID'], 
+      localID: userID,
+      deviceID: userData['deviceID'],
       timestamp: Number(event['timestamp'])/1000000
     };
     console.log("::: Detail :::", userID, confID);
-    var user = data.getUserInConf(confID, userID); 
+    var user = data.getUserInConf(confID, userID);
     if (userID && confID) {
       callstats.userLeft(confID, body, user['token'], user['ucID'])
       .then(function(msg) {
@@ -233,7 +238,7 @@ function pluginEventHandler(event){
 }
 
 function transportEventHandler(event){
-  
+
 }
 
 function coreEventHandler(event){

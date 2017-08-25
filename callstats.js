@@ -175,7 +175,6 @@ const callstats = {
       }]
     });
     
-    console.log("::: These are stats :::", payload);
     var options = {
       host: "stats.callstats.io",
       path: "/v1/apps/" + config.appID + "/conferences/" 
